@@ -403,7 +403,7 @@ public type McpToolConfig record {|
     # The description of the tool.
     string description?;
     # The JSON schema for the tool's parameters.
-    json schema?;
+    map<json> schema?;
 |};
 
 # Annotation to mark a function as an MCP tool configuration.
@@ -411,8 +411,8 @@ public annotation McpToolConfig McpTool on object function;
 
 # Defines a mcp service interface that handles incoming mcp requests.
 public type AdvancedService distinct isolated service object {
-    remote isolated function onListTools() returns ListToolsResult|error;
-    remote isolated function onCallTool(CallToolParams params) returns CallToolResult|error;
+    remote isolated function onListTools() returns ListToolsResult|ServerError;
+    remote isolated function onCallTool(CallToolParams params) returns CallToolResult|ServerError;
 };
 
 public type Service distinct isolated service object {
