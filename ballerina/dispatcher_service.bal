@@ -66,9 +66,9 @@ DispatcherService dispatcherService = isolated service object {
                 return self.processJsonRpcNotification(request.cloneReadOnly());
             }
 
-            JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_REQUEST, "Unsupported request type");
+            JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INVALID_REQUEST, "Unsupported request type");
             return <http:BadRequest>{
-                body: jsonRpcError.cloneReadOnly()
+                body: jsonRpcError
             };
         }
     }
@@ -152,7 +152,7 @@ DispatcherService dispatcherService = isolated service object {
     }
 
     private isolated function handleInitializeRequest(JsonRpcRequest jsonRpcRequest) returns http:BadRequest|http:Ok {
-        JsonRpcRequest {jsonrpc, id, ...request} = jsonRpcRequest;
+        JsonRpcRequest {jsonrpc: _, id, ...request} = jsonRpcRequest;
         InitializeRequest|error initRequest = request.cloneWithType();
         if initRequest is error {
             JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
@@ -166,19 +166,19 @@ DispatcherService dispatcherService = isolated service object {
             // If it's a server with session management and the session ID is already set we should reject the request
             // to avoid re-initialization.
             if self.isInitialized && self.sessionId != () {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
                     "Invalid Request: Only one initialization request is allowed", id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
             ServerConfiguration? serverConfigs = self.serverConfigs;
             if serverConfigs is () {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
                     "Internal Error: Server configuration is not set", id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
@@ -209,19 +209,19 @@ DispatcherService dispatcherService = isolated service object {
         lock {
             // Check if initialized
             if !self.isInitialized {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
                     "Client must be initialized before making requests", request.id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
             ListToolsResult|error listToolsResult = self.executeOnListTools();
             if listToolsResult is error {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
                     string `Failed to list tools: ${listToolsResult.message()}`, request.id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
@@ -242,29 +242,29 @@ DispatcherService dispatcherService = isolated service object {
         lock {
             // Check if initialized
             if !self.isInitialized {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INVALID_REQUEST,
                     "Client must be initialized before making requests", request.id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
             // Extract and validate parameters
             CallToolParams|error params = request.cloneReadOnly().params.ensureType(CallToolParams);
             if params is error {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INVALID_PARAMS,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INVALID_PARAMS,
                     string `Invalid parameters: ${params.message()}`, request.id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
             CallToolResult|error callToolResult = self.executeOnCallTool(params);
             if callToolResult is error {
-                JsonRpcError jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
+                JsonRpcError & readonly jsonRpcError = self.createJsonRpcError(INTERNAL_ERROR,
                     string `Failed to call tool '${params.name}': ${callToolResult.message()}`, request.id);
                 return <http:BadRequest>{
-                    body: jsonRpcError.cloneReadOnly()
+                    body: jsonRpcError
                 };
             }
 
@@ -290,7 +290,7 @@ DispatcherService dispatcherService = isolated service object {
         return LATEST_PROTOCOL_VERSION;
     }
 
-    private isolated function createJsonRpcError(int code, string message, RequestId? id = ()) returns JsonRpcError {
+    private isolated function createJsonRpcError(int code, string message, RequestId? id = ()) returns JsonRpcError & readonly {
         return {
             jsonrpc: JSONRPC_VERSION,
             id: id,
