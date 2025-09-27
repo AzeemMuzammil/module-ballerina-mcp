@@ -84,7 +84,7 @@ public distinct isolated client class StreamableHttpClient {
             self.serverInfo = response.serverInfo.cloneReadOnly();
         }
 
-        check self.sendNotificationMessage(<InitializedNotification>{});
+        check self.sendNotificationMessage(<InitializedNotification>{}, headers);
     }
 
     # Opens a server-sent events (SSE) stream for asynchronous server-to-client communication.
@@ -175,15 +175,17 @@ public distinct isolated client class StreamableHttpClient {
     # Sends a notification message to the server.
     #
     # + notification - The notification object to send.
+    # + headers - Optional headers to include with the request
     # + return - A `ClientError` if sending fails, or `()` on success.
-    private isolated function sendNotificationMessage(Notification notification) returns ClientError? {
+    private isolated function sendNotificationMessage(Notification notification, map<string|string[]> headers = {})
+            returns ClientError? {
         lock {
             JsonRpcNotification jsonRpcNotification = {
                 ...notification.cloneReadOnly(),
                 jsonrpc: JSONRPC_VERSION
             };
 
-            _ = check self.transport.sendMessage(jsonRpcNotification);
+            _ = check self.transport.sendMessage(jsonRpcNotification, headers.cloneReadOnly());
         }
     }
 }
